@@ -1,0 +1,22 @@
+# MacOS
+.DS_Store
+
+# IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+
+# Build
+target/
+build/
+*.jar
+*.war
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
