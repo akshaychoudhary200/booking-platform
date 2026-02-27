@@ -1,29 +1,9 @@
 package org.bookingplatform.bookingservice.booking.service;
 
 import org.bookingplatform.bookingservice.booking.dto.BookingView;
-import org.bookingplatform.bookingservice.booking.repository.BookingRepository;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.UUID;
 
-@Service
-public class BookingQueryService {
-
-    private final BookingRepository bookingRepository;
-
-    public BookingQueryService(BookingRepository bookingRepository) {
-        this.bookingRepository = bookingRepository;
-    }
-
-    public List<BookingView> listForUser(UUID userId) {
-        return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(b -> new BookingView(
-                        b.getBookingId(),
-                        b.getEventId(),
-                        b.getStatus().name(),
-                        b.getCreatedAt()))
-                .toList();
-    }
+public interface BookingQueryService {
+    List<BookingView> listForUser(UUID userId);
 }
