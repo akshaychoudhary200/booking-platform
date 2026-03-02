@@ -49,4 +49,23 @@ public class BookingHoldResultService {
 
         booking.markHoldRejected();
     }
+
+    @Transactional
+    public void applyHoldExpired(UUID bookingId) {
+        var booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found: " + bookingId));
+
+        // idempotency + order tolerance:
+        // if already expired -> ignore
+        if (booking.getStatus() == BookingStatus.HOLD_EXPIRED)
+            return;
+
+        // if already rejected -> ignore (expiry after reject doesn't matter)
+        if (booking.getStatus() == BookingStatus.HOLD_REJECTED)
+            return;
+
+        // if active, we allow expiry to win (safer default). Later confirm flow will
+        // fence this properly.
+        booking.markHoldExpired();
+    }
 }

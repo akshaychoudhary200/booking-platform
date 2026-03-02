@@ -98,4 +98,9 @@ public class Booking {
         this.status = BookingStatus.HOLD_REJECTED;
         this.updatedAt = Instant.now();
     }
+
+    public void markHoldExpired() {
+        this.status = BookingStatus.HOLD_EXPIRED;
+        this.updatedAt = Instant.now();
+    }
 }

@@ -71,4 +71,8 @@ public class Hold {
     public void markRejected() {
         this.status = HoldStatus.REJECTED;
     }
+
+    public void markExpired() {
+        this.status = HoldStatus.EXPIRED;
+    }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.bookingplatform.bookingservice.booking.dto.HoldCreatedEvent;
+import org.bookingplatform.bookingservice.booking.dto.HoldExpiredEvent;
 import org.bookingplatform.bookingservice.booking.dto.HoldRejectedEvent;
 import org.bookingplatform.bookingservice.booking.service.BookingHoldResultService;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -37,6 +38,14 @@ public class InventoryEventsConsumer {
         if ("HoldRejected".equals(type)) {
             HoldRejectedEvent evt = objectMapper.treeToValue(root, HoldRejectedEvent.class);
             bookingHoldResultService.applyHoldRejected(evt.bookingId());
+            ack.acknowledge();
+            return;
+        }
+
+        if ("HoldExpired".equals(type)) {
+            var evt = objectMapper.treeToValue(root,
+                    HoldExpiredEvent.class);
+            bookingHoldResultService.applyHoldExpired(evt.bookingId());
             ack.acknowledge();
             return;
         }
