@@ -31,6 +31,15 @@ public class Booking {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "hold_id")
+    private UUID holdId;
+
+    @Column(name = "hold_expires_at")
+    private Instant holdExpiresAt;
+
+    @Column(name = "seats_held")
+    private Integer seatsHeld;
+
     protected Booking() {
     }
 
@@ -74,6 +83,19 @@ public class Booking {
 
     public void setStatus(BookingStatus status) {
         this.status = status;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markHoldActive(UUID holdId, Instant expiresAt, int seatsHeld) {
+        this.status = BookingStatus.HOLD_ACTIVE;
+        this.holdId = holdId;
+        this.holdExpiresAt = expiresAt;
+        this.seatsHeld = seatsHeld;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markHoldRejected() {
+        this.status = BookingStatus.HOLD_REJECTED;
         this.updatedAt = Instant.now();
     }
 }
