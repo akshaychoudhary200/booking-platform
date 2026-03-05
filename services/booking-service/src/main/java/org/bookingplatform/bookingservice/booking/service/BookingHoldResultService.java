@@ -68,4 +68,28 @@ public class BookingHoldResultService {
         // fence this properly.
         booking.markHoldExpired();
     }
+
+    @Transactional
+    public void applyBookingConfirmed(UUID bookingId) {
+        var booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found: " + bookingId));
+
+        if (booking.getStatus() == BookingStatus.CONFIRMED)
+            return;
+
+        booking.markConfirmed();
+    }
+
+    @Transactional
+    public void applyConfirmRejected(UUID bookingId) {
+        var booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found: " + bookingId));
+
+        if (booking.getStatus() == BookingStatus.CONFIRM_REJECTED)
+            return;
+        if (booking.getStatus() == BookingStatus.CONFIRMED)
+            return;
+
+        booking.markConfirmRejected();
+    }
 }

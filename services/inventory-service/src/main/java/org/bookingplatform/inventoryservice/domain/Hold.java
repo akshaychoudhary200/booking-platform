@@ -75,4 +75,8 @@ public class Hold {
     public void markExpired() {
         this.status = HoldStatus.EXPIRED;
     }
+
+    public void markConfirmed() {
+        this.status = HoldStatus.CONFIRMED;
+    }
 }
