@@ -3,6 +3,7 @@ package org.bookingplatform.bookingservice.inventory.consumer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.bookingplatform.bookingservice.booking.dto.BookingConfirmedEvent;
 import org.bookingplatform.bookingservice.booking.dto.HoldCreatedEvent;
 import org.bookingplatform.bookingservice.booking.dto.HoldExpiredEvent;
 import org.bookingplatform.bookingservice.booking.dto.HoldRejectedEvent;
@@ -50,7 +51,26 @@ public class InventoryEventsConsumer {
             return;
         }
 
+        if ("BookingConfirmed".equals(type))
+
+        {
+            var evt = objectMapper.treeToValue(root,
+                    BookingConfirmedEvent.class);
+            bookingHoldResultService.applyBookingConfirmed(evt.bookingId());
+            ack.acknowledge();
+            return;
+        }
+
+        if ("ConfirmRejected".equals(type)) {
+            var evt = objectMapper.treeToValue(root,
+                    ConfirmRejectedEvent.class);
+            bookingHoldResultService.applyConfirmRejected(evt.bookingId());
+            ack.acknowledge();
+            return;
+        }
+
         // Unknown event type -> ignore safely
         ack.acknowledge();
     }
+
 }

@@ -40,6 +40,9 @@ public class Booking {
     @Column(name = "seats_held")
     private Integer seatsHeld;
 
+    @Column(name = "confirm_idempotency_key")
+    private String confirmIdempotencyKey;
+
     protected Booking() {
     }
 
@@ -102,5 +105,25 @@ public class Booking {
     public void markHoldExpired() {
         this.status = BookingStatus.HOLD_EXPIRED;
         this.updatedAt = Instant.now();
+    }
+
+    public void markConfirmRequested(String idempotencyKey) {
+        this.status = BookingStatus.CONFIRM_REQUESTED;
+        this.confirmIdempotencyKey = idempotencyKey;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markConfirmed() {
+        this.status = BookingStatus.CONFIRMED;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markConfirmRejected() {
+        this.status = BookingStatus.CONFIRM_REJECTED;
+        this.updatedAt = Instant.now();
+    }
+
+    public UUID getHoldId() {
+        return null;
     }
 }

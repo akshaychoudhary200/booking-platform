@@ -18,13 +18,22 @@ public class OutboxPublisher {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    private String topicFor(String eventType) {
+        return switch (eventType) {
+            case "HoldRequested" -> "booking.events";
+            case "ConfirmRequested" -> "booking.commands";
+            default -> "booking.events";
+        };
+    }
+
     @Scheduled(fixedDelay = 500)
     @Transactional
     public void publishUnsent() {
         var events = outboxRepository.findUnpublished();
         for (var e : events) {
-            kafkaTemplate.send("booking.events", e.getAggregateId().toString(), e.getPayloadJson());
+            kafkaTemplate.send(topicFor(e.getEventType()), e.getAggregateId().toString(), e.getPayloadJson());
             e.markPublished();
         }
     }
+
 }

@@ -31,4 +31,15 @@ public interface SeatRepository extends JpaRepository<Seat, SeatKey> {
           AND status = 'HELD'
       """, nativeQuery = true)
   int releaseSeatsForHold(UUID holdId);
+
+  @Modifying
+  @Query(value = """
+        UPDATE seat
+        SET status = 'CONFIRMED',
+            version = version + 1
+        WHERE hold_id = :holdId
+          AND status = 'HELD'
+          AND hold_expires_at > now()
+      """, nativeQuery = true)
+  int confirmSeatsForHold(UUID holdId);
 }
