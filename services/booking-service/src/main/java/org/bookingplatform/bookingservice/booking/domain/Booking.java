@@ -43,6 +43,12 @@ public class Booking {
     @Column(name = "confirm_idempotency_key")
     private String confirmIdempotencyKey;
 
+    @Column(name = "payment_id")
+    private UUID paymentId;
+
+    @Column(name = "payment_idempotency_key")
+    private String paymentIdempotencyKey;
+
     protected Booking() {
     }
 
@@ -82,6 +88,31 @@ public class Booking {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public UUID getPaymentId() {
+        return paymentId;
+    }
+
+    public String getPaymentIdempotencyKey() {
+        return paymentIdempotencyKey;
+    }
+
+    public void markPaymentRequested(String paymentIdempotencyKey) {
+        this.status = BookingStatus.PAYMENT_REQUESTED;
+        this.paymentIdempotencyKey = paymentIdempotencyKey;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markPaymentAuthorized(UUID paymentId) {
+        this.status = BookingStatus.PAYMENT_AUTHORIZED;
+        this.paymentId = paymentId;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markPaymentFailed() {
+        this.status = BookingStatus.PAYMENT_FAILED;
+        this.updatedAt = Instant.now();
     }
 
     public void setStatus(BookingStatus status) {
@@ -126,4 +157,5 @@ public class Booking {
     public UUID getHoldId() {
         return null;
     }
+
 }

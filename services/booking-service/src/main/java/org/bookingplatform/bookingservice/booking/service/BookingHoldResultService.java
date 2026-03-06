@@ -2,6 +2,7 @@ package org.bookingplatform.bookingservice.booking.service;
 
 import org.bookingplatform.bookingservice.booking.domain.BookingStatus;
 import org.bookingplatform.bookingservice.booking.repository.BookingRepository;
+import org.bookingplatform.bookingservice.payment.application.PaymentRequestService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,9 +13,11 @@ import java.util.UUID;
 public class BookingHoldResultService {
 
     private final BookingRepository bookingRepository;
+    private final PaymentRequestService paymentRequestService;
 
-    public BookingHoldResultService(BookingRepository bookingRepository) {
+    public BookingHoldResultService(BookingRepository bookingRepository, PaymentRequestService paymentRequestService) {
         this.bookingRepository = bookingRepository;
+        this.paymentRequestService = paymentRequestService;
     }
 
     @Transactional
@@ -33,6 +36,7 @@ public class BookingHoldResultService {
         }
 
         booking.markHoldActive(holdId, expiresAt, seatsHeld);
+        paymentRequestService.requestPaymentIfNeeded(bookingId);
     }
 
     @Transactional
