@@ -49,6 +49,9 @@ public class Booking {
     @Column(name = "payment_idempotency_key")
     private String paymentIdempotencyKey;
 
+    @Column(name = "cancel_idempotency_key")
+    private String cancelIdempotencyKey;
+
     protected Booking() {
     }
 
@@ -156,6 +159,29 @@ public class Booking {
 
     public UUID getHoldId() {
         return null;
+    }
+
+    public void markCancellationRequested() {
+    }
+
+    public void markCancellationRequested(String idempotencyKey) {
+        this.status = BookingStatus.CANCEL_REQUESTED;
+        this.cancelIdempotencyKey = idempotencyKey;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markCancelled() {
+        this.status = BookingStatus.CANCELLED;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markCancelRejected() {
+        this.status = BookingStatus.CANCEL_REJECTED;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getCancelIdempotencyKey() {
+        return cancelIdempotencyKey;
     }
 
 }

@@ -22,6 +22,8 @@ public class OutboxPublisher {
         return switch (eventType) {
             case "HoldRequested" -> "booking.events";
             case "ConfirmRequested" -> "booking.commands";
+            case "CancelRequested" -> "booking.commands";
+            case "PaymentRequested" -> "booking.commands";
             default -> "booking.events";
         };
     }
