@@ -96,4 +96,30 @@ public class BookingHoldResultService {
 
         booking.markConfirmRejected();
     }
+
+    @Transactional
+    public void applyCancelRejected(UUID bookingId) {
+        var booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found: " + bookingId));
+
+        if (booking.getStatus() == BookingStatus.CANCEL_REJECTED)
+            return;
+        if (booking.getStatus() == BookingStatus.CANCELLED)
+            return;
+
+        booking.markCancelRejected();
+    }
+
+    @Transactional
+    public void applyHoldCancelled(UUID bookingId) {
+        var booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalStateException("Booking not found: " + bookingId));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED)
+            return;
+        if (booking.getStatus() == BookingStatus.HOLD_ACTIVE)
+            return;
+
+        booking.markCancelled();
+    }
 }

@@ -3,7 +3,10 @@ package org.bookingplatform.inventoryservice.messaging.dto;
 import java.util.UUID;
 
 public record CancelRejectedEvent(
-        String type,
-        UUID holdId,
-        UUID bookingId) {
+                String type,
+                UUID holdId,
+                UUID bookingId,
+                UUID eventId,
+                UUID userId,
+                String reason) {
 }

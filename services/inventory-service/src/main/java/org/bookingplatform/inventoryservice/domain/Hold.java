@@ -79,4 +79,8 @@ public class Hold {
     public void markConfirmed() {
         this.status = HoldStatus.CONFIRMED;
     }
+
+    public void markCancelled() {
+        this.status = HoldStatus.CANCELLED;
+    }
 }
