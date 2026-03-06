@@ -1,0 +1,40 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/payment
+    username: app
+    password: app
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: payment-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual
+    producer:
+      acks: all
+      retries: 3
+
+app:
+  payment:
+    callbackDelayMs: 800
+    duplicateCallbackChance: 0.3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
