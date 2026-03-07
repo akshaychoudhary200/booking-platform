@@ -3,6 +3,13 @@ app:
     secret: "change-me-to-a-long-random-secret-at-least-32-chars"
     expirySeconds: 86400
 
+  waiting-room:
+    enabled: true
+    capacity: 100
+    slotTtlSeconds: 180
+    permitTtlSeconds: 60
+    admissionBatchSize: 10
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5434/booking

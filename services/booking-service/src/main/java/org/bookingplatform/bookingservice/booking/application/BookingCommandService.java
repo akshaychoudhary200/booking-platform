@@ -1,5 +1,7 @@
-package org.bookingplatform.bookingservice.booking.service;
+package org.bookingplatform.bookingservice.booking.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.bookingplatform.bookingservice.booking.domain.Booking;
 import org.bookingplatform.bookingservice.booking.domain.BookingStatus;
 import org.bookingplatform.bookingservice.booking.dto.BookingView;
@@ -13,9 +15,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.UUID;
 
 @Service
@@ -26,7 +25,8 @@ public class BookingCommandService {
     private final ObjectMapper objectMapper;
     private final EventAdmissionService eventAdmissionService;
 
-    public BookingCommandService(BookingRepository bookingRepository,
+    public BookingCommandService(
+            BookingRepository bookingRepository,
             OutboxRepository outboxRepository,
             ObjectMapper objectMapper,
             EventAdmissionService eventAdmissionService) {
@@ -39,19 +39,14 @@ public class BookingCommandService {
     @Transactional
     public BookingView createHoldIdempotent(UUID userId, String idempotencyKey, CreateBookingRequest req) {
 
-        // 1) idempotent retry
+        // 1) Idempotent retry: same user + same key => same booking
         var existing = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
         if (existing.isPresent()) {
-            return toView(existing.get());
+            Booking b = existing.get();
+            return toView(b);
         }
 
-        // 2) user must have permit for this event
-        boolean permitConsumed = eventAdmissionService.consumePermit(req.eventId(), userId);
-        if (!permitConsumed) {
-            throw new IllegalStateException("No active permit for this event");
-        }
-
-        // 3) create booking row
+        // 2) Create booking row first
         Booking booking = new Booking(
                 UUID.randomUUID(),
                 userId,
@@ -62,20 +57,22 @@ public class BookingCommandService {
         try {
             bookingRepository.saveAndFlush(booking);
         } catch (DataIntegrityViolationException e) {
+            // concurrent duplicate request raced and won
             Booking winner = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
                     .orElseThrow(() -> e);
             return toView(winner);
         }
 
-        // 4) acquire active workflow slot
+        // 3) Admission gate: protect hot event from overload
         boolean admitted = eventAdmissionService.tryAcquireSlot(booking.getEventId(), booking.getBookingId());
 
         if (!admitted) {
-            booking.markHoldRejected();
+            // simplest first version: reject immediately
+            booking.setStatus(BookingStatus.HOLD_REJECTED);
             return toView(booking);
         }
 
-        // 5) write outbox event
+        // 4) Admitted => write outbox event in same DB transaction
         String payloadJson = toJson(new HoldRequestedEvent(
                 "HoldRequested",
                 booking.getBookingId(),
@@ -93,70 +90,11 @@ public class BookingCommandService {
     }
 
     private BookingView toView(Booking booking) {
-        return null;
-    }
-
-    @Transactional
-    public BookingView create(UUID userId, CreateBookingRequest req) {
-
-        Booking booking = new Booking(
-                UUID.randomUUID(),
-                userId,
-                req.eventId(),
-                BookingStatus.HOLD_REQUESTED,
-                null);
-
-        bookingRepository.save(booking);
-
         return new BookingView(
                 booking.getBookingId(),
                 booking.getEventId(),
                 booking.getStatus().name(),
                 booking.getCreatedAt());
-    }
-
-    @Transactional
-    public BookingView createIdempotent(UUID userId, String idempotencyKey, CreateBookingRequest req) {
-
-        var existing = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
-        if (existing.isPresent()) {
-            var b = existing.get();
-            return new BookingView(b.getBookingId(), b.getEventId(), b.getStatus().name(), b.getCreatedAt());
-        }
-
-        Booking booking = new Booking(
-                UUID.randomUUID(),
-                userId,
-                req.eventId(),
-                BookingStatus.HOLD_REQUESTED,
-                idempotencyKey);
-
-        try {
-            bookingRepository.saveAndFlush(booking);
-
-            String payloadJson = toJson(new HoldRequestedEvent(
-                    "HoldRequested",
-                    booking.getBookingId(),
-                    userId,
-                    req.eventId()));
-
-            outboxRepository.save(new OutboxEvent(
-                    UUID.randomUUID(),
-                    "Booking",
-                    booking.getBookingId(),
-                    "HoldRequested",
-                    payloadJson));
-
-            return new BookingView(booking.getBookingId(), booking.getEventId(), booking.getStatus().name(),
-                    booking.getCreatedAt());
-
-        } catch (DataIntegrityViolationException e) {
-
-            Booking winner = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
-                    .orElseThrow(() -> e);
-            return new BookingView(winner.getBookingId(), winner.getEventId(), winner.getStatus().name(),
-                    winner.getCreatedAt());
-        }
     }
 
     private String toJson(Object obj) {
@@ -166,5 +104,4 @@ public class BookingCommandService {
             throw new IllegalStateException("Failed to serialize outbox payload", ex);
         }
     }
-
 }

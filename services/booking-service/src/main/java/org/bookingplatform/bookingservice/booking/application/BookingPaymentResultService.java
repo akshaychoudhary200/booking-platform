@@ -2,6 +2,7 @@ package org.bookingplatform.bookingservice.booking.application;
 
 import org.bookingplatform.bookingservice.booking.domain.BookingStatus;
 import org.bookingplatform.bookingservice.booking.repository.BookingRepository;
+import org.bookingplatform.bookingservice.waitingroom.application.EventAdmissionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,9 +12,13 @@ import java.util.UUID;
 public class BookingPaymentResultService {
 
     private final BookingRepository bookingRepository;
+    private final EventAdmissionService eventAdmissionService;
 
-    public BookingPaymentResultService(BookingRepository bookingRepository) {
+    public BookingPaymentResultService(
+            BookingRepository bookingRepository,
+            EventAdmissionService eventAdmissionService) {
         this.bookingRepository = bookingRepository;
+        this.eventAdmissionService = eventAdmissionService;
     }
 
     @Transactional
@@ -21,26 +26,24 @@ public class BookingPaymentResultService {
         var booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalStateException("Booking not found: " + bookingId));
 
-        // Late callbacks: if hold expired/rejected, ignore (don’t confirm)
-        if (booking.getStatus() == BookingStatus.HOLD_EXPIRED || booking.getStatus() == BookingStatus.HOLD_REJECTED) {
+        if (booking.getStatus() == BookingStatus.HOLD_EXPIRED
+                || booking.getStatus() == BookingStatus.HOLD_REJECTED
+                || booking.getStatus() == BookingStatus.CANCELLED) {
             return false;
         }
 
-        // Idempotent: same key already applied
-        if (paymentIdempotencyKey != null && paymentIdempotencyKey.equals(booking.getPaymentIdempotencyKey())
+        if (paymentIdempotencyKey != null
+                && paymentIdempotencyKey.equals(booking.getPaymentIdempotencyKey())
                 && booking.getStatus() == BookingStatus.PAYMENT_AUTHORIZED) {
             return false;
         }
 
-        // Only accept auth when we actually requested payment
         if (booking.getStatus() != BookingStatus.PAYMENT_REQUESTED
                 && booking.getStatus() != BookingStatus.HOLD_ACTIVE) {
             return false;
         }
 
         booking.markPaymentAuthorized(paymentId);
-
-        // return "should we proceed to confirm?"
         return true;
     }
 
@@ -49,13 +52,15 @@ public class BookingPaymentResultService {
         var booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalStateException("Booking not found: " + bookingId));
 
-        if (booking.getStatus() == BookingStatus.PAYMENT_FAILED)
+        if (booking.getStatus() == BookingStatus.PAYMENT_FAILED) {
             return;
+        }
 
-        // Late failure after confirm? ignore (safe choice)
-        if (booking.getStatus() == BookingStatus.CONFIRMED)
+        if (booking.getStatus() == BookingStatus.CONFIRMED) {
             return;
+        }
 
         booking.markPaymentFailed();
+        eventAdmissionService.releaseSlot(booking.getEventId(), booking.getBookingId());
     }
 }
